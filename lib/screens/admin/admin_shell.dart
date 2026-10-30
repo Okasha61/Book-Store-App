@@ -11,7 +11,6 @@ import 'admin_orders_screen.dart';
 import 'admin_reviews_screen.dart';
 import 'admin_settings_screen.dart';
 
-/// Responsive admin navigation shell. Each section keeps its existing screen/UI.
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key, this.initialIndex = 0});
 
@@ -22,7 +21,7 @@ class AdminShell extends StatefulWidget {
 }
 
 class _AdminShellState extends State<AdminShell> {
-  static const _bg = Color(0xFF061116);
+  static const Color _bg = Color(0xFF061116);
 
   late int _index;
 
@@ -32,15 +31,34 @@ class _AdminShellState extends State<AdminShell> {
     _index = widget.initialIndex.clamp(0, 6);
   }
 
-  final List<Widget> _pages = [
-    const AdminDashboardScreen(),
-    const AdminBooksScreen(),
-    const AdminCategoriesScreen(),
-    const AdminOrdersScreen(),
-    AdminCustomersScreen(),
-    AdminReviewsScreen(),
-    const AdminSettingsScreen(),
-  ];
+  Widget _buildPage() {
+    switch (_index) {
+      case 0:
+        return const AdminDashboardScreen();
+      case 1:
+        return const AdminBooksScreen();
+      case 2:
+        return const AdminCategoriesScreen();
+      case 3:
+        return const AdminOrdersScreen();
+      case 4:
+        return AdminCustomersScreen();
+      case 5:
+        return AdminReviewsScreen();
+      case 6:
+        return const AdminSettingsScreen();
+      default:
+        return const AdminDashboardScreen();
+    }
+  }
+
+  void _selectPage(int value) {
+    if (value < 0 || value > 6) return;
+
+    setState(() {
+      _index = value;
+    });
+  }
 
   void _backToApp() {
     Navigator.of(context).pushAndRemoveUntil(
@@ -65,7 +83,12 @@ class _AdminShellState extends State<AdminShell> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= 1000;
+        final bool wide = constraints.maxWidth >= 1000;
+
+        final page = KeyedSubtree(
+          key: ValueKey<int>(_index),
+          child: _buildPage(),
+        );
 
         if (wide) {
           return Scaffold(
@@ -76,14 +99,12 @@ class _AdminShellState extends State<AdminShell> {
                   width: 250,
                   child: AdminDrawer(
                     selectedIndex: _index,
-                    onSelect: (value) => setState(() => _index = value),
+                    onSelect: _selectPage,
                     onBackToApp: _backToApp,
                   ),
                 ),
                 const VerticalDivider(width: 1, color: Color(0xFF1B3039)),
-                Expanded(
-                  child: IndexedStack(index: _index, children: _pages),
-                ),
+                Expanded(child: page),
               ],
             ),
           );
@@ -93,21 +114,32 @@ class _AdminShellState extends State<AdminShell> {
           backgroundColor: _bg,
           drawer: AdminDrawer(
             selectedIndex: _index,
-            onSelect: (value) => setState(() => _index = value),
+            onSelect: _selectPage,
             onBackToApp: _backToApp,
           ),
-          appBar: AppBar(
-            backgroundColor: _bg,
-            foregroundColor: Colors.white,
-            title: const Text('Book Store Admin'),
-            leading: Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  height: 52,
+                  color: _bg,
+                  alignment: Alignment.centerLeft,
+                  child: Builder(
+                    builder: (drawerContext) {
+                      return IconButton(
+                        tooltip: 'Open admin menu',
+                        icon: const Icon(Icons.menu, color: Colors.white),
+                        onPressed: () {
+                          Scaffold.of(drawerContext).openDrawer();
+                        },
+                      );
+                    },
+                  ),
+                ),
+                Expanded(child: page),
+              ],
             ),
           ),
-          body: IndexedStack(index: _index, children: _pages),
         );
       },
     );
